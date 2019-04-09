@@ -1,1 +1,1 @@
-# Speeding Violations Throughout the Day in Aurora, CO
+# Speeding Violations in Aurora, CO: This graphic is a dynamic representation of the location of speeding violations throughout the day in Aurora.
