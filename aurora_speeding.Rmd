@@ -6,25 +6,57 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readr)
+library(sf)
+library(fs)
+library(gt)
+library(ggthemes)
+library(gganimate)
+library(lubridate)
+library(gapminder)
+# Necessary libraries
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+```{r speeding files, echo = FALSE, warning=FALSE, message=FALSE}
+aurora <- read_rds(url("https://stacks.stanford.edu/file/druid:tr137st9964/tr137st9964_co_aurora_2019_02_25.rds")) 
 
-```{r cars}
-summary(cars)
+download.file(url = "https://stacks.stanford.edu/file/druid:tr137st9964/tr137st9964_co_aurora_shapefiles_2019_02_25.tgz", destfile = "shapes2.tgz", quiet = TRUE)
+
+untar("shapes2.tgz")
+
+shapes_data2 <- read_sf("co_aurora_shapefiles/Police_Districts.shp")
+
+file_delete(c("shapes2.tgz", "co_aurora_shapefiles"))
+# Copied "R" link for Aurora from the stanford open policing project website and loaded it in using read_rds
 ```
 
-## Including Plots
+```{r speeding code, echo=FALSE, warning=FALSE, message=FALSE}
+aurora_speeding_times <- aurora %>%
+  filter(str_detect(violation, "Speeding")) %>%
+  filter(!is.na(lat)) %>%
+  filter(!is.na(lng)) %>%
+  mutate(time = hour(time)) %>%
+  sample_n(5000)
 
-You can also embed plots, for example:
+# I wanted to look at the location of speeding tickets throughout the day.  I used str detect because there were two types of speeding violations and I wanted to look at both types.
+#sample_n(5000) takes a sample of 5000 rows from the data because running the entire data set takes too long because it is so large.
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+speeding_locations <- st_as_sf(aurora_speeding_times, 
+                             coords = c("lng", "lat"), 
+                             crs = 4326) 
+# Turns the coordinates into point on the map
+ggplot(data = shapes_data2) +
+  geom_sf() +
+  geom_sf(data = speeding_locations, show.legend = FALSE, alpha = 0.5) +
+  theme_map() + 
+  transition_manual(time) +
+  labs(title = "Location of Speeding Violations throughout the Day",
+       subtitle = "Aurora, CO",
+       caption = "Source: Stanford Open Policing Project")
+
+#maps the coordinates in the data.
+#transition_manual(time) makes the map dynamic, as points are added based on the time of occurence.
 ```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
